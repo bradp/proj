@@ -1,0 +1,12 @@
+site_name:url:site_name.wdslab.com
+site_name:repo:git@github.com:bradp/site.git
+site_name:database:http://sample-server.com/databases/site.sql.zip
+
+site_name2:url:site_name2.wdslab.com
+site_name2:repo:git@github.com:bradp/site2.git
+site_name2:database:http://sample-server.com/databases/site2.sql.zip
+
+site_name3:url:site_name2.wdslab.com
+
+site_name4:repo:git@github.com:bradp/site2.git
+site_name4:database:http://sample-server.com/databases/site2.sql.zip

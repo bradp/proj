@@ -1,0 +1,195 @@
+#!/usr/bin/env bash
+
+#                              ██
+#   ██████                     ░░
+#  ░██░░░██ ██████  ██████     ██
+#  ░██  ░██░░██░░█ ██░░░░██   ░██
+#  ░██████  ░██ ░ ░██   ░██   ░██
+#  ░██░░░   ░██   ░██   ░██ ██░██
+#  ░██     ░███   ░░██████ ░░███
+#  ░░      ░░░     ░░░░░░   ░░░
+# An automated vv project setup script
+#
+
+version_number=0.0.1
+
+if [[ ! -z $(which tput) ]]; then
+	normal=$(tput sgr0)
+	bold=$(tput bold)
+	red=$(tput setaf 1)
+	green=$(tput setaf 2)
+	yellow=$(tput setaf 3)
+	magenta=$(tput setaf 5)
+fi
+
+
+version() {
+	echo "proj version $version_number"
+}
+
+# Usage: info "message"
+# Example: info "doing thing"
+# Output (to STDOUT): doing thing
+info() {
+	printf "%b" "${bold}${yellow}$1${normal} \n"
+}
+
+# Usage: success "message"
+# Example: success "It's Working"
+# Output (to STDOUT): [...] It's Working
+success() {
+	printf "%b" "[${green}Success${normal}]${green} $1 ${normal}\n"
+}
+
+# Usage: warning "message"
+# Example: warning "some warning"
+# Output (to STDOUT): [...] some warning
+warning() {
+	printf "%b" "${red} $1 ${normal}\n"
+}
+
+# Usage: prompt "question"
+# Example: prompt "Site name"
+# Output (to STDOUT): Site Name:
+prompt() {
+	printf "%b" "${magenta} $1: ${normal}"
+}
+
+# Usage: error ["message"]
+# Example: error "this is an error"
+# Output (to STDERR): [ERROR] this is an error
+error() {
+    printf "%b" "[${bold}${red}Error${normal}]${bold}${red} ${1:-'Unknown Error'}${normal}\n" >&2
+}
+
+# Usage: fail "message"
+# Example: fail "Unknown Option" 254
+fail() {
+	error "$1"
+	exit 1
+}
+
+argument_expected() {
+    if [ -z "$2" ] || [[ "$2" == -* ]]; then
+        fail "$1 expected an argument"
+    fi
+}
+
+update_configs() {
+	# todo: have this authenticate and pull from a server
+	# not sure the best way to authenticate on server, but need to implement something of the sort
+	configs=$(cat sites_config.txt)
+	rm "$HOME"/.cached_proj_configs
+	echo "$configs" > "$HOME"/.cached_proj_configs
+	success "Update configurations for all sites."
+}
+
+get_configs_for_site() {
+	update_configs #verify we have the most up to date version of our configs
+	site_configs=$(grep "$1": "$HOME"/.cached_proj_configs)
+	if [ -z "$site_configs" ]; then
+		fail "Could not find configuration values for that site."
+	fi
+
+	touch ."$1".config
+	echo "$site_configs" > ."$1".config
+
+	repo=$(grep "repo" ."$1".config)
+	database=$(grep "database" ."$1".config)
+	url=$(grep "url" ."$1".config)
+
+	rm ."$1".config
+
+	if [ -z "$repo" ]; then
+		error "Could not find a repo. Will not automatically clone it down."
+		vv_repo_setting=''
+	else
+		repo_setting=$(echo "$repo" | sed -e "s/$1:repo://")
+		vv_repo_setting="--git-repo ""$repo_setting"
+	fi
+	if [ -z "$database" ]; then
+		error "Could not find a database. Will not import the database."
+		vv_database_setting=''
+	else
+		database_setting=$(echo "$database" | sed -e "s/$1:database://")
+		#TODO pull down database file and change the vsitename junk
+		if [ -z "$(which wget)" ]; then
+			wget "$database_setting" > "$1".sql.tar.gz
+		elif [ -z "$(which curl)" ]; then
+			curl "$database_setting" > "$1".sql.tar.gz
+		else
+			error "Could not download database. wget & curl both were not found."
+		fi
+
+		if [ -f "$1".sql.tar.gz ]; then
+			tar -xvf "$1".sql.tar.gz
+		else
+			error "Database did not download correctly."
+		fi
+
+		# here we want to do some serialized sed magic of some sort user
+
+		vv_database_setting="--database ""$database_setting"
+	fi
+	if [ -z "$url" ]; then
+		error "Could not find a staging url. Will not find/replace in database."
+	else
+		url_setting=$(echo "$url" | sed -e "s/$1:url://")
+		if [ -z "$database" ]; then
+			#TODO replace strings in database here
+			echo "didn't replace database strings"
+		fi
+	fi
+
+	info "Starting vv setup of $1"
+	#todo : solve this: [Error] Unknown option --git-repo git@github.com:webdevstudios/site2.git
+	command_to_run="vv create --name $1 --domain $1.dev $vv_repo_setting $vv_database_setting --defaults"
+	info "Running $command_to_run"
+	# yes | $command_to_run
+}
+
+init_site() {
+	info "Starting initilization of site."
+	info "Refreshing all cached configuration values for sites."
+	get_configs_for_site "$@"
+	success 'Finished setting up site.'
+}
+
+update_site() {
+	echo ""
+	#TODO this is where the code to update the database to the newest snapshot will be
+}
+
+check_args() {
+	while [ ! -z "$1" ]; do
+		case "$1" in
+			init)
+				argument_expected "$1" "$2"
+				init_site "$2"
+				shift 2
+				;;
+			update)
+				argument_expected "$1" "$2"
+				update_site "$2"
+				shift 2
+				;;
+			update_configs|update-configs|uc)
+				update_configs
+				shift 1
+				;;
+			*)
+				fail "Unknown option $1"
+				shift
+				;;
+		esac
+	done
+	exit 0
+}
+
+main() {
+	if [ -z "$(which vv)" ];then
+		fail "You need to install / configure vv to use this."
+	fi
+	check_args "$@"
+}
+main "$@"
