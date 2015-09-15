@@ -8,6 +8,7 @@
 ░██     ░███   ░░██████ ░░███ 
 ░░      ░░░     ░░░░░░   ░░░  
 
+Automatically run vv setup commands based on a central server configuration
 
 ```
 
