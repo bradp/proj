@@ -1,16 +1,18 @@
 ```
                             ██
- ██████                    ░░ 
+ ██████                    ░░
 ░██░░░██ ██████  ██████     ██
 ░██  ░██░░██░░█ ██░░░░██   ░██
 ░██████  ░██ ░ ░██   ░██   ░██
 ░██░░░   ░██   ░██   ░██ ██░██
-░██     ░███   ░░██████ ░░███ 
-░░      ░░░     ░░░░░░   ░░░  
+░██     ░███   ░░██████ ░░███
+░░      ░░░     ░░░░░░   ░░░
 
 Automatically run vv setup commands based on a central server configuration
 
 ```
+
+[![Travis](https://img.shields.io/travis/bradp/proj.svg)]()
 
 **Important Note:** This project is in the very early steps of development, and does not function correctly currently.
 
